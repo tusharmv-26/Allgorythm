@@ -1,0 +1,15 @@
+# Frontend Dependencies & Build Files
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Backend Variables & Caches
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
