@@ -6,7 +6,7 @@ const PanelAttackerIntelligence = () => {
 
     const fetchProfiles = async () => {
         try {
-            const res = await fetch('http://13.48.58.234:8000/profiles');
+            const res = await fetch('http://13.61.240.101:8000/profiles');
             const data = await res.json();
             setProfiles(data);
             setLoading(false);
