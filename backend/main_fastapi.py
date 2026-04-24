@@ -83,9 +83,10 @@ def health_check():
 @app.post("/events")
 async def post_event(request: Request):
     payload = await request.json()
-    req_ip = payload.get("attacker_ip")
-    req_res_name = payload.get("resource_name")
-    req_method = payload.get("method")
+    # Support both attacker_ip and source_ip field names
+    req_ip = payload.get("attacker_ip") or payload.get("source_ip") or request.client.host
+    req_res_name = payload.get("resource_name") or payload.get("destination")
+    req_method = payload.get("method") or payload.get("action")
     ts = payload.get("timestamp") or time.time()
     
     # 1. Enrich IP with Global Intel

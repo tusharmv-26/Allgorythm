@@ -4,6 +4,7 @@ const DevSecOpsCoverage = ({ serverUrl }) => {
   const [coverage, setCoverage] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCoverage = async () => {
@@ -13,14 +14,24 @@ const DevSecOpsCoverage = ({ serverUrl }) => {
           fetch(`${serverUrl}/devsecops/coverage-summary`)
         ]);
         
+        if (!coverageRes.ok || !summaryRes.ok) {
+          throw new Error(`HTTP ${coverageRes.status}/${summaryRes.status}`);
+        }
+        
         const coverageData = await coverageRes.json();
         const summaryData = await summaryRes.json();
         
-        setCoverage(coverageData);
-        setSummary(summaryData);
+        // Ensure coverage is array
+        const coverageArray = Array.isArray(coverageData) ? coverageData : [];
+        setCoverage(coverageArray);
+        setSummary(summaryData || {});
+        setError(null);
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch coverage data:', error);
+        setError(error.message);
+        setCoverage([]);
+        setSummary(null);
         setLoading(false);
       }
     };
@@ -61,8 +72,10 @@ const DevSecOpsCoverage = ({ serverUrl }) => {
       <div className="panel-header">
         <span>DevSecOps Coverage</span>
       </div>
-      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto' }}>
-        {loading ? (
+      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto', minHeight: 0 }}>
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#EF4444', paddingTop: '20px' }}>Error: {error}</div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>Loading...</div>
         ) : (
           <>
@@ -86,11 +99,11 @@ const DevSecOpsCoverage = ({ serverUrl }) => {
               </div>
             )}
 
-            {coverage.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '10px' }}>No deployments recorded</div>
+            {!coverage || coverage.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '10px' }}>No deployments recorded. POST to /devsecops/deployment-event to start tracking.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {coverage.map((svc) => (
+                {(Array.isArray(coverage) ? coverage : []).map((svc) => (
                   <div
                     key={svc.service_name}
                     style={{

@@ -9,13 +9,13 @@ export default function PanelCorrelations() {
     const fetchData = async () => {
       try {
         // Fetch correlations
-        const corrRes = await fetch('http://13.61.240.101:8000/correlations');
+        const corrRes = await fetch('http://localhost:8000/correlations');
         if (corrRes.ok) {
           setCorrelations(await corrRes.json());
         }
 
         // Fetch employees
-        const empRes = await fetch('http://13.61.240.101:8000/employees');
+        const empRes = await fetch('http://localhost:8000/employees');
         if (empRes.ok) {
           setEmployees(await empRes.json());
         }

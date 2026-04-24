@@ -7,7 +7,7 @@ const PanelAttackerIntelligence = () => {
 
     const fetchProfiles = async () => {
         try {
-            const res = await fetch('http://13.61.240.101:8000/profiles');
+            const res = await fetch('http://localhost:8000/profiles');
             const data = await res.json();
             setProfiles(Array.isArray(data) ? data : []);
             setLoading(false);
@@ -19,7 +19,7 @@ const PanelAttackerIntelligence = () => {
 
     const fetchAptData = async () => {
         try {
-            const res = await fetch('http://13.61.240.101:8000/apt/suspects');
+            const res = await fetch('http://localhost:8000/apt/suspects');
             const data = await res.json();
             const aptMap = {};
             data.forEach(apt => {
@@ -256,7 +256,7 @@ const PanelAttackerIntelligence = () => {
 
                             {/* Action Button */}
                             <a 
-                                href={`http://13.61.240.101:8000/report/${p.ip}`}
+                                href={`http://localhost:8000/report/${p.ip}`}
                                 target="_blank" 
                                 rel="noreferrer"
                                 style={{

@@ -3,16 +3,25 @@ import React, { useState, useEffect } from 'react';
 const MITREHeatmap = ({ serverUrl }) => {
   const [techniques, setTechniques] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMITRE = async () => {
       try {
         const response = await fetch(`${serverUrl}/mitre/summary`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
-        setTechniques(data);
+        // Ensure data is an array
+        const techniquesArray = Array.isArray(data) ? data : [];
+        setTechniques(techniquesArray);
+        setError(null);
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch MITRE data:', error);
+        setError(error.message);
+        setTechniques([]);
         setLoading(false);
       }
     };
@@ -40,14 +49,16 @@ const MITREHeatmap = ({ serverUrl }) => {
       <div className="panel-header">
         <span>MITRE ATT&CK Techniques</span>
       </div>
-      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto' }}>
-        {loading ? (
+      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto', minHeight: 0 }}>
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#EF4444', paddingTop: '20px' }}>Error: {error}</div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>Loading...</div>
-        ) : techniques.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>No techniques detected</div>
+        ) : !techniques || techniques.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>No techniques detected yet. Post attack events to see MITRE mappings.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {techniques.slice(0, 10).map((tech) => (
+            {(Array.isArray(techniques) ? techniques : []).slice(0, 10).map((tech) => (
               <div
                 key={tech.technique_id}
                 style={{

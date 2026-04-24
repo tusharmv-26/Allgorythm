@@ -7,6 +7,17 @@ class AttackerProfiler:
     def update(self, ip, resource, timestamp=None, enrichment=None):
         if timestamp is None:
             timestamp = time.time()
+        else:
+            # Handle string timestamps (convert ISO format to float)
+            try:
+                if isinstance(timestamp, str):
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    timestamp = dt.timestamp()
+                else:
+                    timestamp = float(timestamp)
+            except (ValueError, AttributeError):
+                timestamp = time.time()
             
         if ip not in self.profiles:
             self.profiles[ip] = {

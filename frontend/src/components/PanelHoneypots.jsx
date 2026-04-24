@@ -3,16 +3,25 @@ import React, { useState, useEffect } from 'react';
 const PanelHoneypots = ({ serverUrl }) => {
   const [honeypots, setHoneypots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchHoneypots = async () => {
       try {
         const response = await fetch(`${serverUrl}/honeypots`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
-        setHoneypots(data);
+        // Ensure data is array
+        const honeypotsArray = Array.isArray(data) ? data : [];
+        setHoneypots(honeypotsArray);
+        setError(null);
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch honeypots:', error);
+        setError(error.message);
+        setHoneypots([]);
         setLoading(false);
       }
     };
@@ -40,12 +49,14 @@ const PanelHoneypots = ({ serverUrl }) => {
       <div className="panel-header">
         <span>Honeypot Status</span>
       </div>
-      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto' }}>
-        {loading ? (
+      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto', minHeight: 0 }}>
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#EF4444', paddingTop: '20px' }}>Error: {error}</div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>Loading...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {honeypots.map((hp) => (
+            {(Array.isArray(honeypots) ? honeypots : []).map((hp) => (
               <div
                 key={hp.name}
                 style={{

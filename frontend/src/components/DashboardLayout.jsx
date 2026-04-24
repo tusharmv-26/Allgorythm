@@ -77,14 +77,14 @@ const DashboardLayout = ({ events, auditLog, systemStatus }) => {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         
         {activeTab === 'Dashboard' && (
-          <>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <div style={{ flex: '1 1 50%', minHeight: 0, padding: '16px 16px 8px 16px', overflow: 'hidden' }}>
                 <PanelWorldMap events={events} />
             </div>
             <div style={{ flex: '1 1 50%', minHeight: 0, padding: '8px 16px 16px 16px', overflow: 'hidden' }}>
                 <PanelEventFeed events={events} />
             </div>
-          </>
+          </div>
         )}
 
         {activeTab === 'Live Events' && (
@@ -112,29 +112,31 @@ const DashboardLayout = ({ events, auditLog, systemStatus }) => {
         )}
 
         {activeTab === 'Honeypots' && (
-          <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: '100%', minHeight: 0 }}>
-              <PanelHoneypots serverUrl="http://13.61.240.101:8000" />
-              <MITREHeatmap serverUrl="http://13.61.240.101:8000" />
+          <div style={{ flex: 1, padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', minHeight: 0, overflow: 'hidden' }}>
+            <div style={{ minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+              <PanelHoneypots serverUrl="http://localhost:8000" />
+            </div>
+            <div style={{ minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+              <MITREHeatmap serverUrl="http://localhost:8000" />
             </div>
           </div>
         )}
 
         {activeTab === 'MITRE Heatmap' && (
           <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-            <MITREHeatmap serverUrl="http://13.61.240.101:8000" />
+            <MITREHeatmap serverUrl="http://localhost:8000" />
           </div>
         )}
 
         {activeTab === 'APT Activity' && (
           <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-            <APTSuspects serverUrl="http://13.61.240.101:8000" />
+            <APTSuspects serverUrl="http://localhost:8000" />
           </div>
         )}
 
         {activeTab === 'DevSecOps' && (
           <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-            <DevSecOpsCoverage serverUrl="http://13.61.240.101:8000" />
+            <DevSecOpsCoverage serverUrl="http://localhost:8000" />
           </div>
         )}
 

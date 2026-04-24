@@ -40,6 +40,14 @@ def _get_asn(ip):
         return "UNKNOWN", "UNKNOWN"
 
 def enrich_ip(ip):
+    # Handle None or empty IP
+    if not ip or not isinstance(ip, str):
+        return {
+            "is_tor": False, "asn": "UNKNOWN", "org": "UNKNOWN", 
+            "country": "UNKNOWN", "city": "UNKNOWN", "is_datacenter": False, 
+            "risk_label": "INVALID_IP"
+        }
+    
     if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("127.") or ip.startswith("172."):
         return {
             "is_tor": False, "asn": "PRIVATE", "org": "LOCAL_NETWORK", 

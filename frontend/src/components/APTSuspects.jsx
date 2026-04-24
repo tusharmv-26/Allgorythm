@@ -3,16 +3,25 @@ import React, { useState, useEffect } from 'react';
 const APTSuspects = ({ serverUrl }) => {
   const [suspects, setSuspects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchAPT = async () => {
       try {
         const response = await fetch(`${serverUrl}/apt/suspects`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
-        setSuspects(data);
+        // Ensure data is an array
+        const suspectsArray = Array.isArray(data) ? data : [];
+        setSuspects(suspectsArray);
+        setError(null);
         setLoading(false);
       } catch (error) {
         console.error('Failed to fetch APT data:', error);
+        setError(error.message);
+        setSuspects([]);
         setLoading(false);
       }
     };
@@ -41,11 +50,13 @@ const APTSuspects = ({ serverUrl }) => {
       <div className="panel-header">
         <span>APT Activity</span>
       </div>
-      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto' }}>
-        {loading ? (
+      <div style={{ padding: '16px', height: 'calc(100% - 40px)', overflowY: 'auto', minHeight: 0 }}>
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#EF4444', paddingTop: '20px' }}>Error: {error}</div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>Loading...</div>
-        ) : suspects.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>No APT activity detected</div>
+        ) : !suspects || suspects.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#9CA3AF', paddingTop: '20px' }}>No APT activity detected. Post repeated attacks from same IP to trigger APT detection.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {suspects.map((suspect) => (
