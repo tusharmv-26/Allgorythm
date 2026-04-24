@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -10,6 +10,8 @@ from intelligence import RiskEngine, SimilarityEngine
 from intelligence.attacker_profiler import AttackerProfiler
 from intelligence.ip_enricher import enrich_ip
 from intelligence.mutation_engine import MutationEngine
+from intelligence.employee_tracker import EmployeeActivityTracker
+from intelligence.correlation_engine import InsiderExternalCorrelationEngine
 from aws_client import AWSController
 from grok_client import GrokClient
 from reports.report_generator import generate_incident_report
@@ -33,6 +35,8 @@ aws_client = AWSController()
 grok_client = GrokClient()
 attacker_profiler = AttackerProfiler()
 mutation_engine = MutationEngine()
+employee_tracker = EmployeeActivityTracker()
+correlation_engine = InsiderExternalCorrelationEngine()
 
 # In-memory stores
 events = [] # Event feed
@@ -52,7 +56,14 @@ CANARY_TOKENS = {
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return JSONResponse(
+        content={"status": "healthy"},
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.post("/events")
 async def post_event(request: Request):
@@ -148,12 +159,26 @@ async def post_event(request: Request):
 
 @app.get("/events")
 def get_events():
-    return events[:50] # return top 50
+    return JSONResponse(
+        content=events[:50],
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.get("/canary/track")
 def track_canary(request: Request, token: str = None, type: str = "access"):
     if not token or token not in CANARY_TOKENS:
-        return {} # Stealth return, act exactly like a 404/blank healthcheck
+        return JSONResponse(
+            content={},
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        ) # Stealth return, act exactly like a 404/blank healthcheck
         
     ts = time.time()
     real_ip = request.client.host
@@ -184,11 +209,25 @@ def track_canary(request: Request, token: str = None, type: str = "access"):
     system_status["status"] = "Healing active"
     system_status["total_events"] += 1
     
-    return {} # Always return empty 200 OK so attacker tool doesn't crash or notice
+    return JSONResponse(
+        content={},
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    ) # Always return empty 200 OK so attacker tool doesn't crash or notice
 
 @app.get("/mutations")
 def get_mutations():
-    return mutation_engine.get_created_honeypots()
+    return JSONResponse(
+        content=mutation_engine.get_created_honeypots(),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.get("/report/{ip}")
 def download_report(ip: str):
@@ -235,11 +274,25 @@ def download_report(ip: str):
 
 @app.get("/audit")
 def get_audit():
-    return audit_log[:50]
+    return JSONResponse(
+        content=audit_log[:50],
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.get("/status")
 def get_status():
-    return system_status
+    return JSONResponse(
+        content=system_status,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.post("/rollback")
 async def post_rollback(request: Request):
@@ -319,8 +372,98 @@ def post_demo():
 
 @app.get("/profiles")
 def get_profiles():
-    return attacker_profiler.get_all_profiles()
+    return JSONResponse(
+        content=attacker_profiler.get_all_profiles(),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.get("/profiles/{ip}")
 def get_profile(ip: str):
-    return attacker_profiler.get_profile(ip)
+    return JSONResponse(
+        content=attacker_profiler.get_profile(ip),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+@app.post("/employee-access")
+async def log_employee_access(request: Request):
+    """Log employee accessing a resource (for insider threat tracking)"""
+    payload = await request.json()
+    
+    employee_id = payload.get("employee_id")
+    resource = payload.get("resource")
+    access_type = payload.get("type")
+    timestamp = payload.get("timestamp") or time.time()
+    
+    # Log the access
+    access_record = employee_tracker.log_employee_access(
+        employee_id, resource, access_type, timestamp
+    )
+    
+    # Check for correlations with external attacks
+    correlations = correlation_engine.correlate_threats(
+        [access_record],
+        events
+    )
+    
+    high_risk_count = len([c for c in correlations if c["correlation_score"] >= 70])
+    
+    if high_risk_count > 0:
+        system_status["status"] = "Insider Threat Detected"
+        system_status["total_healing"] += 1
+    
+    return {
+        "status": "logged",
+        "record": access_record,
+        "correlations_detected": high_risk_count
+    }
+
+@app.get("/correlations")
+def get_correlations(min_score: int = 70):
+    """Get insider + external threat correlations"""
+    high_risk = correlation_engine.get_high_risk_correlations(min_score)
+    return JSONResponse(
+        content=high_risk,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+@app.get("/employee/{employee_id}")
+def get_employee_profile(employee_id: str):
+    """Get risk profile for specific employee"""
+    profile = employee_tracker.get_employee_profile(employee_id)
+    return JSONResponse(
+        content=profile,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+@app.get("/employees")
+def get_all_employees():
+    """Get all tracked employees and their risk levels"""
+    employees = []
+    for emp_id in employee_tracker.employee_logs.keys():
+        profile = employee_tracker.get_employee_profile(emp_id)
+        employees.append(profile)
+    
+    return JSONResponse(
+        content=sorted(employees, key=lambda x: x["avg_risk_score"], reverse=True),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
