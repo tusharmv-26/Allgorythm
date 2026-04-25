@@ -98,7 +98,8 @@ class MLRiskEngine:
             try:
                 base_score = self.model.predict(features)[0]
                 # Ensure the score strictly increases with each step in the MITRE path!
-                path_booster = (unique_honeypots_hit - 1) * 15
+                # In the Apex architecture, we track progression by access_count
+                path_booster = (access_count - 1) * 12
                 final_score = max(base_score, 20 + path_booster)
                 return int(min(max(final_score, 0), 100))
             except Exception as e:
@@ -106,7 +107,7 @@ class MLRiskEngine:
                 
         # Fallback to heuristic if model is unavailable
         score = 10
-        if access_count > 1: score += 20
+        if access_count > 1: score += (access_count - 1) * 12
         if unique_honeypots_hit > 1: score += 30
         if keyword_hit_count > 0: score += 20
         if is_tor or is_datacenter: score += 20
